@@ -1,0 +1,95 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Manrope", sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-wine: var(--brand-wine);
+  --color-brand-wine-foreground: var(--brand-wine-foreground);
+  --color-cream: var(--cream);
+  --color-lime-soft: var(--lime-soft);
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.99 0.006 92);
+  --foreground: oklch(0.24 0.018 75);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.018 75);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.018 75);
+  --primary: oklch(0.78 0.2 126);
+  --primary-foreground: oklch(0.2 0.045 125);
+  --secondary: oklch(0.36 0.12 18);
+  --secondary-foreground: oklch(0.98 0.01 90);
+  --muted: oklch(0.96 0.012 90);
+  --muted-foreground: oklch(0.5 0.018 70);
+  --accent: oklch(0.93 0.055 125);
+  --accent-foreground: oklch(0.28 0.07 125);
+  --destructive: oklch(0.58 0.23 28);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.9 0.015 88);
+  --input: oklch(0.9 0.015 88);
+  --ring: oklch(0.7 0.17 126);
+  --brand-wine: oklch(0.35 0.12 18);
+  --brand-wine-foreground: oklch(0.98 0.01 90);
+  --cream: oklch(0.97 0.018 91);
+  --lime-soft: oklch(0.94 0.09 126);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
+  body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  ::selection { background: var(--color-primary); color: var(--color-primary-foreground); }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@utility animate-slide-in { animation: slide-in 500ms ease-out both; }
+
+.campaign-banner { min-height: 680px; background: var(--color-cream); color: var(--color-foreground); }
+.campaign-shade { background: linear-gradient(115deg, var(--color-cream), color-mix(in oklab, var(--color-lime-soft) 58%, var(--color-cream))); }
+.campaign-practicality .campaign-shade { background: linear-gradient(115deg, var(--color-background), color-mix(in oklab, var(--color-primary) 16%, var(--color-cream))); }
+.campaign-organization .campaign-shade { background: linear-gradient(115deg, color-mix(in oklab, var(--color-brand-wine) 8%, var(--color-cream)), var(--color-cream)); }
+.campaign-feature { background: var(--color-brand-wine); color: var(--color-brand-wine-foreground); }
+.campaign-practicality .campaign-feature { background: var(--color-primary); color: var(--color-primary-foreground); }
+.campaign-organization .campaign-feature:nth-child(even) { background: var(--color-primary); color: var(--color-primary-foreground); }
+
+@media (max-width: 767px) {
+  .campaign-banner { min-height: 720px; }
+  .campaign-visual img { object-position: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
