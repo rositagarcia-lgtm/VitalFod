@@ -33,6 +33,16 @@
   --color-brand-wine-foreground: var(--brand-wine-foreground);
   --color-cream: var(--cream);
   --color-lime-soft: var(--lime-soft);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 :root {
@@ -60,36 +70,134 @@
   --brand-wine-foreground: oklch(0.98 0.01 90);
   --cream: oklch(0.97 0.018 91);
   --lime-soft: oklch(0.94 0.09 126);
+  --warning: oklch(0.7 0.16 65);
+  --success: oklch(0.55 0.14 145);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.3 0.015 75);
+  --sidebar-primary: var(--brand-wine);
+  --sidebar-primary-foreground: var(--brand-wine-foreground);
+  --sidebar-accent: oklch(0.96 0.03 125);
+  --sidebar-accent-foreground: oklch(0.24 0.018 75);
+  --sidebar-border: oklch(0.92 0.01 88);
+  --sidebar-ring: var(--ring);
+}
+
+.dark {
+  --background: oklch(0.17 0.008 75);
+  --foreground: oklch(0.95 0.008 90);
+  --card: oklch(0.21 0.01 75);
+  --card-foreground: oklch(0.95 0.008 90);
+  --popover: oklch(0.21 0.01 75);
+  --popover-foreground: oklch(0.95 0.008 90);
+  --secondary: oklch(0.3 0.02 75);
+  --secondary-foreground: oklch(0.95 0.008 90);
+  --muted: oklch(0.25 0.01 75);
+  --muted-foreground: oklch(0.7 0.012 80);
+  --accent: oklch(0.3 0.05 125);
+  --accent-foreground: oklch(0.92 0.06 125);
+  --border: oklch(0.3 0.01 75);
+  --input: oklch(0.33 0.01 75);
+  --brand-wine: oklch(0.75 0.11 18);
+  --brand-wine-foreground: oklch(0.18 0.03 18);
+  --cream: oklch(0.2 0.01 75);
+  --lime-soft: oklch(0.3 0.07 126);
+  --sidebar: oklch(0.19 0.009 75);
+  --sidebar-foreground: oklch(0.85 0.01 85);
+  --sidebar-accent: oklch(0.27 0.03 125);
+  --sidebar-accent-foreground: oklch(0.95 0.008 90);
+  --sidebar-border: oklch(0.28 0.01 75);
+  color-scheme: dark;
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
-  body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); }
-  button, a { -webkit-tap-highlight-color: transparent; }
-  ::selection { background: var(--color-primary); color: var(--color-primary-foreground); }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
 }
 
 @keyframes slide-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@utility animate-slide-in { animation: slide-in 500ms ease-out both; }
+@utility animate-slide-in {
+  animation: slide-in 500ms ease-out both;
+}
 
-.campaign-banner { min-height: 680px; background: var(--color-cream); color: var(--color-foreground); }
-.campaign-shade { background: linear-gradient(115deg, var(--color-cream), color-mix(in oklab, var(--color-lime-soft) 58%, var(--color-cream))); }
-.campaign-practicality .campaign-shade { background: linear-gradient(115deg, var(--color-background), color-mix(in oklab, var(--color-primary) 16%, var(--color-cream))); }
-.campaign-organization .campaign-shade { background: linear-gradient(115deg, color-mix(in oklab, var(--color-brand-wine) 8%, var(--color-cream)), var(--color-cream)); }
-.campaign-feature { background: var(--color-brand-wine); color: var(--color-brand-wine-foreground); }
-.campaign-practicality .campaign-feature { background: var(--color-primary); color: var(--color-primary-foreground); }
-.campaign-organization .campaign-feature:nth-child(even) { background: var(--color-primary); color: var(--color-primary-foreground); }
+.campaign-banner {
+  min-height: 680px;
+  background: var(--color-cream);
+  color: var(--color-foreground);
+}
+.campaign-shade {
+  background: linear-gradient(
+    115deg,
+    var(--color-cream),
+    color-mix(in oklab, var(--color-lime-soft) 58%, var(--color-cream))
+  );
+}
+.campaign-practicality .campaign-shade {
+  background: linear-gradient(
+    115deg,
+    var(--color-background),
+    color-mix(in oklab, var(--color-primary) 16%, var(--color-cream))
+  );
+}
+.campaign-organization .campaign-shade {
+  background: linear-gradient(
+    115deg,
+    color-mix(in oklab, var(--color-brand-wine) 8%, var(--color-cream)),
+    var(--color-cream)
+  );
+}
+.campaign-feature {
+  background: var(--color-brand-wine);
+  color: var(--color-brand-wine-foreground);
+}
+.campaign-practicality .campaign-feature {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+.campaign-organization .campaign-feature:nth-child(even) {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
 
 @media (max-width: 767px) {
-  .campaign-banner { min-height: 720px; }
-  .campaign-visual img { object-position: center; }
+  .campaign-banner {
+    min-height: 720px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

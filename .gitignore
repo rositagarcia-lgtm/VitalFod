@@ -1,4 +1,10 @@
 ﻿node_modules/
 dist/
+.output/
+.nitro/
+.tanstack/
+.wrangler/
 .env
-.env.local
+.env.*
+!.env.example
+*.log
