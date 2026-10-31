@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { db, dbErrorMessage } from "@/server/db";
-import { requireUser } from "@/server/session";
+import { requireModule, requireUser } from "@/server/session";
+import { canAccess } from "@/lib/permissions";
+import { logActivity } from "@/server/activity";
 import { validate } from "@/server/validation";
 import type { Categoria } from "@/lib/types";
 
@@ -16,7 +18,10 @@ const categoriaSchema = z.object({
 export type CategoriaInput = z.infer<typeof categoriaSchema>;
 
 export const listCategorias = createServerFn({ method: "GET" }).handler(async () => {
-  await requireUser();
+  const user = await requireUser();
+  if (!canAccess(user, "categorias") && !canAccess(user, "platillos")) {
+    throw new Error("No tienes permiso para ver esta sección.");
+  }
   const rows = await db()`
     SELECT c.id, c.nombre, c.descripcion, c.orden, c.activo,
            (SELECT count(*)::int FROM platillos p WHERE p.categoria_id = c.id) AS total_platillos
@@ -29,7 +34,7 @@ export const listCategorias = createServerFn({ method: "GET" }).handler(async ()
 export const saveCategoria = createServerFn({ method: "POST" })
   .validator(validate(categoriaSchema))
   .handler(async ({ data }) => {
-    await requireUser();
+    const user = await requireModule("categorias");
     const descripcion = data.descripcion || null;
     try {
       if (data.id) {
@@ -47,15 +52,17 @@ export const saveCategoria = createServerFn({ method: "POST" })
     } catch (error) {
       throw new Error(dbErrorMessage(error));
     }
+    await logActivity(user, data.id ? "editar" : "crear", "Categorías", data.nombre);
     return { ok: true };
   });
 
 export const deleteCategoria = createServerFn({ method: "POST" })
   .validator(validate(z.object({ id: z.number().int().positive() })))
   .handler(async ({ data }) => {
-    await requireUser();
+    const user = await requireModule("categorias");
+    let deleted: Record<string, unknown> | undefined;
     try {
-      await db()`DELETE FROM categorias WHERE id = ${data.id}`;
+      deleted = (await db()`DELETE FROM categorias WHERE id = ${data.id} RETURNING nombre`)[0];
     } catch (error) {
       const message = dbErrorMessage(error);
       throw new Error(
@@ -64,5 +71,6 @@ export const deleteCategoria = createServerFn({ method: "POST" })
           : message,
       );
     }
+    await logActivity(user, "eliminar", "Categorías", String(deleted?.["nombre"] ?? ""));
     return { ok: true };
   });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Clock3, ExternalLink, MapPin, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +22,15 @@ import {
 } from "@/components/admin/ui";
 import { useAction } from "@/components/admin/hooks";
 import { toInt } from "@/lib/utils";
+import { canAccess } from "@/lib/permissions";
 import { deleteSede, listSedes, saveSede, type SedeInput } from "@/functions/admin/sedes";
 import type { Sede } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/_panel/sedes")({
-  staticData: { title: "Sedes" },
+  staticData: { title: "Sedes", section: "Negocio" },
+  beforeLoad: ({ context }) => {
+    if (!canAccess(context.user, "sedes")) throw redirect({ to: "/admin" });
+  },
   loader: () => listSedes(),
   component: SedesPage,
 });
@@ -196,7 +200,7 @@ function SedesPage() {
                 />
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Orden" htmlFor="orden">
+                <Field label="Posición en la lista" htmlFor="orden" hint="1 aparece primero.">
                   <Input
                     id="orden"
                     type="number"

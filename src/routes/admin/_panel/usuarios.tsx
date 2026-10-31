@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Pencil, UserPlus } from "lucide-react";
+import { KeyRound, LockOpen, Pencil, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -33,13 +33,17 @@ import { useAction } from "@/components/admin/hooks";
 import {
   deleteUsuario,
   listUsuarios,
+  resetUsuarioMfa,
   saveUsuario,
+  unlockUsuario,
   type UsuarioInput,
 } from "@/functions/admin/usuarios";
-import type { Rol, Usuario } from "@/lib/types";
+import { MODULOS } from "@/lib/permissions";
+import { parseDbDate } from "@/lib/images";
+import type { Modulo, Rol, Usuario } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/_panel/usuarios")({
-  staticData: { title: "Usuarios" },
+  staticData: { title: "Usuarios y permisos", section: "Accesos" },
   beforeLoad: ({ context }) => {
     if (context.user.rol !== "admin") throw redirect({ to: "/admin" });
   },
@@ -51,8 +55,7 @@ const dateFormat = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeS
 
 function formatDate(value: string | null) {
   if (!value) return "Nunca";
-  // Postgres devuelve "2026-01-10 09:00:00.123+00"; se normaliza a ISO 8601
-  const date = new Date(value.replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00"));
+  const date = parseDbDate(value);
   return Number.isNaN(date.getTime()) ? value : dateFormat.format(date);
 }
 
@@ -65,31 +68,66 @@ function UsuariosPage() {
   const open = (u?: Usuario) =>
     setEditing(
       u
-        ? { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, activo: u.activo, password: "" }
-        : { nombre: "", email: "", rol: "editor", activo: true, password: "" },
+        ? {
+            id: u.id,
+            nombre: u.nombre,
+            email: u.email,
+            rol: u.rol,
+            activo: u.activo,
+            permisos: u.permisos,
+            password: "",
+          }
+        : {
+            nombre: "",
+            email: "",
+            rol: "editor",
+            activo: true,
+            permisos: ["platillos"],
+            password: "",
+          },
     );
 
   const set = <K extends keyof UsuarioInput>(key: K, value: UsuarioInput[K]) =>
     setEditing((prev) => (prev ? { ...prev, [key]: value } : prev));
+
+  const togglePermiso = (m: Modulo, on: boolean) =>
+    setEditing((prev) =>
+      prev
+        ? {
+            ...prev,
+            permisos: on
+              ? [...new Set([...prev.permisos, m])]
+              : prev.permisos.filter((p) => p !== m),
+          }
+        : prev,
+    );
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editing) return;
     const ok = await run(
       () => saveUsuario({ data: editing }),
-      editing.id ? "Usuario actualizado." : "Usuario creado.",
+      editing.id
+        ? "Usuario actualizado."
+        : "Usuario creado. Al ingresar por primera vez configurará su verificación en dos pasos.",
     );
     if (ok) setEditing(null);
   };
 
   const isSelf = editing?.id === me.id;
+  const permisosTexto = (u: Usuario) =>
+    u.rol === "admin"
+      ? "Todo el panel"
+      : MODULOS.filter((m) => u.permisos.includes(m.id))
+          .map((m) => m.nombre)
+          .join(", ") || "Ninguna";
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Accesos"
-        title="Usuarios"
-        description="Personas con acceso al panel. Los editores no pueden gestionar usuarios."
+        title="Usuarios y permisos"
+        description="Quién puede entrar al panel y qué secciones puede modificar. Todos ingresan con contraseña y un código de su celular."
         action={
           <Button variant="burgundy" onClick={() => open()}>
             <UserPlus /> Nuevo usuario
@@ -102,10 +140,10 @@ function UsuariosPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Usuario</TableHead>
-              <TableHead>Rol</TableHead>
+              <TableHead>Puede modificar</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead className="hidden md:table-cell">Último acceso</TableHead>
-              <TableHead className="w-24 text-right">Acciones</TableHead>
+              <TableHead className="hidden lg:table-cell">Último acceso</TableHead>
+              <TableHead className="w-36 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -124,17 +162,62 @@ function UsuariosPage() {
                         )}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                      <p className="text-xs font-semibold text-brand-wine">{ROLE_LABEL[u.rol]}</p>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>{ROLE_LABEL[u.rol]}</TableCell>
+                <TableCell className="max-w-56 text-sm">{permisosTexto(u)}</TableCell>
                 <TableCell>
-                  <StatusBadge active={u.activo} on="Activo" off="Inactivo" />
+                  <div className="flex flex-wrap gap-1">
+                    <StatusBadge active={u.activo} on="Activo" off="Inactivo" />
+                    <StatusBadge
+                      active={u.totp_activo}
+                      on="2 pasos activo"
+                      off="2 pasos pendiente"
+                    />
+                    {u.bloqueado && (
+                      <span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                        Bloqueado
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
-                <TableCell className="hidden text-muted-foreground md:table-cell">
+                <TableCell className="hidden text-muted-foreground lg:table-cell">
                   {formatDate(u.ultimo_acceso)}
                 </TableCell>
                 <TableCell className="text-right">
+                  {u.bloqueado && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Desbloquear cuenta"
+                      aria-label={`Desbloquear a ${u.nombre}`}
+                      onClick={() =>
+                        void run(
+                          () => unlockUsuario({ data: { id: u.id } }),
+                          "Cuenta desbloqueada.",
+                        )
+                      }
+                    >
+                      <LockOpen />
+                    </Button>
+                  )}
+                  {u.totp_activo && u.id !== me.id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Restablecer verificación en dos pasos (p. ej. si cambió de celular)"
+                      aria-label={`Restablecer verificación en dos pasos de ${u.nombre}`}
+                      onClick={() =>
+                        void run(
+                          () => resetUsuarioMfa({ data: { id: u.id } }),
+                          "Listo. La próxima vez que ingrese, vinculará de nuevo su app de autenticación.",
+                        )
+                      }
+                    >
+                      <KeyRound />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -160,7 +243,7 @@ function UsuariosPage() {
       </div>
 
       <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           {editing && (
             <form onSubmit={submit} className="grid gap-4">
               <DialogHeader>
@@ -168,7 +251,7 @@ function UsuariosPage() {
                 <DialogDescription>
                   {editing.id
                     ? "Deja la contraseña vacía para mantener la actual."
-                    : "Comparte la contraseña con la persona por un canal seguro."}
+                    : "Comparte la contraseña por un canal seguro. Al ingresar, la persona vinculará su app de autenticación."}
                 </DialogDescription>
               </DialogHeader>
               <Field label="Nombre" htmlFor="nombre">
@@ -179,7 +262,11 @@ function UsuariosPage() {
                   required
                 />
               </Field>
-              <Field label="Correo" htmlFor="email">
+              <Field
+                label="Correo"
+                htmlFor="email"
+                hint="Solo correos autorizados (por ejemplo @gmail.com o @vitalfoods.pe)."
+              >
                 <Input
                   id="email"
                   type="email"
@@ -191,7 +278,7 @@ function UsuariosPage() {
               <Field
                 label={editing.id ? "Nueva contraseña" : "Contraseña"}
                 htmlFor="password"
-                hint="Mínimo 8 caracteres."
+                hint="Mínimo 10 caracteres. Se guarda cifrada."
               >
                 <Input
                   id="password"
@@ -203,7 +290,7 @@ function UsuariosPage() {
                 />
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Rol" htmlFor="rol">
+                <Field label="Tipo de acceso" htmlFor="rol">
                   <Select
                     value={editing.rol}
                     onValueChange={(v) => set("rol", v as Rol)}
@@ -213,8 +300,8 @@ function UsuariosPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
+                      <SelectItem value="admin">Administrador (todo)</SelectItem>
+                      <SelectItem value="editor">Editor (secciones elegidas)</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
@@ -224,9 +311,37 @@ function UsuariosPage() {
                     onCheckedChange={(v) => set("activo", v)}
                     disabled={isSelf}
                   />
-                  Activo
+                  Puede ingresar
                 </label>
               </div>
+              <fieldset className="grid gap-2 rounded-lg border p-3">
+                <legend className="px-1 text-sm font-semibold">
+                  Secciones que puede modificar
+                </legend>
+                {MODULOS.map((m) => {
+                  const checked = editing.rol === "admin" || editing.permisos.includes(m.id);
+                  return (
+                    <label key={m.id} className="flex items-start gap-3 rounded-md p-1 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 size-4 accent-[var(--color-brand-wine)]"
+                        checked={checked}
+                        disabled={editing.rol === "admin"}
+                        onChange={(e) => togglePermiso(m.id, e.target.checked)}
+                      />
+                      <span>
+                        <span className="font-medium">{m.nombre}</span>
+                        <span className="block text-xs text-muted-foreground">{m.descripcion}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+                {editing.rol === "admin" && (
+                  <p className="text-xs text-muted-foreground">
+                    Los administradores pueden modificar todo, incluidos usuarios e historial.
+                  </p>
+                )}
+              </fieldset>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>
                   Cancelar

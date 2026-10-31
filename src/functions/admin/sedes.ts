@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { db, dbErrorMessage } from "@/server/db";
-import { requireUser } from "@/server/session";
+import { requireModule } from "@/server/session";
+import { logActivity } from "@/server/activity";
 import { validate } from "@/server/validation";
 import { optionalUrl } from "@/server/schemas";
 import type { Sede } from "@/lib/types";
@@ -20,7 +21,7 @@ const sedeSchema = z.object({
 export type SedeInput = z.infer<typeof sedeSchema>;
 
 export const listSedes = createServerFn({ method: "GET" }).handler(async () => {
-  await requireUser();
+  await requireModule("sedes");
   const rows = await db()`
     SELECT id, nombre, direccion, horario, referencia, mapa_url, orden, activo
     FROM sedes ORDER BY orden, nombre
@@ -31,7 +32,7 @@ export const listSedes = createServerFn({ method: "GET" }).handler(async () => {
 export const saveSede = createServerFn({ method: "POST" })
   .validator(validate(sedeSchema))
   .handler(async ({ data }) => {
-    await requireUser();
+    const user = await requireModule("sedes");
     const referencia = data.referencia || null;
     const mapa = data.mapa_url || null;
     try {
@@ -51,13 +52,15 @@ export const saveSede = createServerFn({ method: "POST" })
     } catch (error) {
       throw new Error(dbErrorMessage(error));
     }
+    await logActivity(user, data.id ? "editar" : "crear", "Sedes", data.nombre);
     return { ok: true };
   });
 
 export const deleteSede = createServerFn({ method: "POST" })
   .validator(validate(z.object({ id: z.number().int().positive() })))
   .handler(async ({ data }) => {
-    await requireUser();
-    await db()`DELETE FROM sedes WHERE id = ${data.id}`;
+    const user = await requireModule("sedes");
+    const deleted = (await db()`DELETE FROM sedes WHERE id = ${data.id} RETURNING nombre`)[0];
+    await logActivity(user, "eliminar", "Sedes", String(deleted?.["nombre"] ?? ""));
     return { ok: true };
   });

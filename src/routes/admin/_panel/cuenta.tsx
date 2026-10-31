@@ -7,7 +7,7 @@ import { ROLE_LABEL, UserAvatar } from "@/components/admin/AdminSidebar";
 import { changePassword } from "@/functions/auth";
 
 export const Route = createFileRoute("/admin/_panel/cuenta")({
-  staticData: { title: "Seguridad de cuenta" },
+  staticData: { title: "Seguridad de cuenta", section: "Mi cuenta" },
   component: CuentaPage,
 });
 
@@ -48,6 +48,9 @@ function CuentaPage() {
               <p className="font-bold">{user.nombre}</p>
               <p className="text-sm text-muted-foreground">{user.email}</p>
               <p className="mt-1 text-xs font-semibold text-brand-wine">{ROLE_LABEL[user.rol]}</p>
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-success/30 bg-success/10 px-2 py-1 text-xs font-semibold text-success">
+                Verificación en dos pasos activa
+              </p>
             </div>
           </div>
         </section>
@@ -64,7 +67,11 @@ function CuentaPage() {
               required
             />
           </Field>
-          <Field label="Nueva contraseña" htmlFor="nueva" hint="Mínimo 8 caracteres.">
+          <Field
+            label="Nueva contraseña"
+            htmlFor="nueva"
+            hint="Mínimo 10 caracteres. Se guarda cifrada."
+          >
             <Input
               id="nueva"
               type="password"

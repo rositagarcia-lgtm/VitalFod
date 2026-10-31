@@ -1,9 +1,21 @@
 // useSession es la sesión sellada de h3, no un hook de React
 import { useSession as openSession } from "@tanstack/react-start/server";
 import { db } from "./db";
-import type { SessionUser } from "@/lib/types";
+import { canAccess } from "@/lib/permissions";
+import type { Modulo, SessionUser } from "@/lib/types";
 
-type SessionData = { userId?: number };
+type SessionData = {
+  /** Usuario con sesión completa (contraseña + verificación en dos pasos). */
+  userId?: number;
+  /** Usuario que pasó la contraseña y aún debe completar la verificación en dos pasos. */
+  pendingUserId?: number;
+  pendingAt?: number;
+  /** Secreto propuesto mientras el usuario configura su app de autenticación (cifrado). */
+  setupSecret?: string;
+};
+
+/** Minutos disponibles para ingresar el código después de la contraseña. */
+const PENDING_TTL_MS = 10 * 60 * 1000;
 
 export function getAppSession() {
   const password = process.env["SESSION_SECRET"];
@@ -29,7 +41,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!userId) return null;
 
   const rows = await db()`
-    SELECT id, nombre, email, rol FROM usuarios WHERE id = ${userId} AND activo = TRUE
+    SELECT id, nombre, email, rol, permisos FROM usuarios
+    WHERE id = ${userId} AND activo = TRUE AND totp_activo = TRUE
   `;
   const user = rows[0] as SessionUser | undefined;
   if (!user) {
@@ -37,6 +50,14 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     return null;
   }
   return user;
+}
+
+/** Usuario que ingresó la contraseña y está a mitad de la verificación en dos pasos. */
+export async function getPendingUserId(): Promise<number | null> {
+  const session = await getAppSession();
+  const { pendingUserId, pendingAt } = session.data;
+  if (!pendingUserId || !pendingAt || Date.now() - pendingAt > PENDING_TTL_MS) return null;
+  return pendingUserId;
 }
 
 export async function requireUser(): Promise<SessionUser> {
@@ -48,5 +69,11 @@ export async function requireUser(): Promise<SessionUser> {
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
   if (user.rol !== "admin") throw new Error("No tienes permisos para esta acción.");
+  return user;
+}
+
+export async function requireModule(modulo: Modulo): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!canAccess(user, modulo)) throw new Error("No tienes permiso para modificar esta sección.");
   return user;
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ import {
 } from "@/components/admin/ui";
 import { useAction } from "@/components/admin/hooks";
 import { toInt } from "@/lib/utils";
+import { canAccess } from "@/lib/permissions";
 import {
   deleteCategoria,
   listCategorias,
@@ -40,7 +41,10 @@ import {
 import type { Categoria } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/_panel/categorias")({
-  staticData: { title: "Categorías" },
+  staticData: { title: "Categorías", section: "Menú" },
+  beforeLoad: ({ context }) => {
+    if (!canAccess(context.user, "categorias")) throw redirect({ to: "/admin" });
+  },
   loader: () => listCategorias(),
   component: CategoriasPage,
 });
@@ -95,7 +99,7 @@ function CategoriasPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16">Orden</TableHead>
+                <TableHead className="w-20">Posición</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead className="hidden md:table-cell">Descripción</TableHead>
                 <TableHead className="text-center">Platillos</TableHead>
@@ -175,7 +179,7 @@ function CategoriasPage() {
                 />
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Orden" htmlFor="orden">
+                <Field label="Posición en la lista" htmlFor="orden" hint="1 aparece primero.">
                   <Input
                     id="orden"
                     type="number"

@@ -49,3 +49,8 @@ SELECT * FROM (VALUES
    ARRAY['Saludable', 'Práctico', 'Refrigerado', 'Delivery'], 3)
 ) AS v (etiqueta, titulo, descripcion, descripcion_secundaria, sticker, texto_boton, imagen_url, variante, caracteristicas, orden)
 WHERE NOT EXISTS (SELECT 1 FROM promociones p WHERE p.titulo = v.titulo);
+
+-- Destacados iniciales de la portada (solo si todavía no hay ninguno)
+UPDATE platillos SET destacado = TRUE
+WHERE nombre IN ('Bowl Vital', 'Tostadas tropicales', 'Ensalada Mediterránea')
+  AND NOT EXISTS (SELECT 1 FROM platillos WHERE destacado);

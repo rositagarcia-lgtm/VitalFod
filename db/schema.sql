@@ -116,6 +116,60 @@ CREATE TABLE IF NOT EXISTS promociones (
   CONSTRAINT promociones_variante_valida CHECK (variante IN ('launch', 'practicality', 'organization'))
 );
 
+-- ofertas y destacados ----------------------------------------------------
+
+ALTER TABLE platillos ADD COLUMN IF NOT EXISTS precio_oferta NUMERIC(10, 2);
+ALTER TABLE platillos ADD COLUMN IF NOT EXISTS destacado BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE platillos ADD COLUMN IF NOT EXISTS precio_actualizado_at TIMESTAMPTZ;
+-- Los platillos existentes no deben aparecer como "precio actualizado"
+UPDATE platillos SET precio_actualizado_at = created_at WHERE precio_actualizado_at IS NULL;
+ALTER TABLE platillos ALTER COLUMN precio_actualizado_at SET DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE platillos ALTER COLUMN precio_actualizado_at SET NOT NULL;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'platillos_oferta_valida') THEN
+    ALTER TABLE platillos ADD CONSTRAINT platillos_oferta_valida
+      CHECK (precio_oferta IS NULL OR (precio_oferta >= 0 AND precio_oferta < precio));
+  END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION set_precio_actualizado_at() RETURNS trigger AS $$
+BEGIN
+  IF NEW.precio IS DISTINCT FROM OLD.precio OR NEW.precio_oferta IS DISTINCT FROM OLD.precio_oferta THEN
+    NEW.precio_actualizado_at = CURRENT_TIMESTAMP;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_platillos_precio ON platillos;
+CREATE TRIGGER trg_platillos_precio BEFORE UPDATE ON platillos
+  FOR EACH ROW EXECUTE FUNCTION set_precio_actualizado_at();
+
+-- seguridad de usuarios: permisos por módulo, 2FA y bloqueo por intentos ----
+
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos TEXT[] NOT NULL
+  DEFAULT ARRAY['platillos', 'categorias', 'sedes', 'promociones'];
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS totp_secreto TEXT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS totp_activo BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS totp_ultimo_paso BIGINT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS intentos_fallidos INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bloqueado_hasta TIMESTAMPTZ;
+
+-- historial de cambios del panel --------------------------------------------
+
+CREATE TABLE IF NOT EXISTS actividad (
+  id          BIGSERIAL PRIMARY KEY,
+  usuario_id  INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
+  usuario     VARCHAR(100) NOT NULL,
+  accion      VARCHAR(30) NOT NULL,
+  modulo      VARCHAR(30) NOT NULL,
+  detalle     VARCHAR(300) NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad (created_at DESC);
+
 -- triggers de updated_at ------------------------------------------------
 
 DO $$
@@ -129,3 +183,8 @@ BEGIN
     );
   END LOOP;
 END $$;
+
+-- el menú ahora es una página propia (/menu) --------------------------------
+
+ALTER TABLE promociones ALTER COLUMN enlace_boton SET DEFAULT '/menu';
+UPDATE promociones SET enlace_boton = '/menu' WHERE enlace_boton = '#platillos';

@@ -65,7 +65,7 @@ export function ImageField({
 
   return (
     <div className="grid gap-1.5">
-      <Label>Imagen</Label>
+      <Label>Foto</Label>
       <div className="flex items-center gap-4">
         <div className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted">
           {preview ? (
@@ -95,7 +95,7 @@ export function ImageField({
                 onClick={() => inputRef.current?.click()}
               >
                 {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-                {uploading ? "Subiendo…" : value.url ? "Cambiar" : "Subir imagen"}
+                {uploading ? "Subiendo…" : value.url ? "Cambiar foto" : "Subir foto"}
               </Button>
             </>
           )}
@@ -119,7 +119,8 @@ export function ImageField({
             onChange={(e) => onChange({ url: e.target.value || null, publicId: null })}
           />
           <p className="text-xs text-muted-foreground">
-            Cloudinary no está configurado: por ahora puedes pegar la URL de la imagen.
+            La subida de fotos aún no está configurada: por ahora puedes pegar la dirección (URL) de
+            la imagen.
           </p>
         </>
       )}

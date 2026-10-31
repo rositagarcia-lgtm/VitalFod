@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { db, dbErrorMessage } from "@/server/db";
 import { destroyImage } from "@/server/cloudinary";
-import { requireUser } from "@/server/session";
+import { requireModule } from "@/server/session";
+import { logActivity } from "@/server/activity";
 import { validate } from "@/server/validation";
 import { imageFields, optionalUrl } from "@/server/schemas";
 import type { Promocion } from "@/lib/types";
@@ -26,7 +27,7 @@ const promocionSchema = z.object({
 export type PromocionInput = z.infer<typeof promocionSchema>;
 
 export const listPromociones = createServerFn({ method: "GET" }).handler(async () => {
-  await requireUser();
+  await requireModule("promociones");
   const rows = await db()`
     SELECT id, etiqueta, titulo, descripcion, descripcion_secundaria, sticker, texto_boton,
            enlace_boton, imagen_url, imagen_public_id, variante, caracteristicas, orden, activo
@@ -38,11 +39,11 @@ export const listPromociones = createServerFn({ method: "GET" }).handler(async (
 export const savePromocion = createServerFn({ method: "POST" })
   .validator(validate(promocionSchema))
   .handler(async ({ data }) => {
-    await requireUser();
+    const user = await requireModule("promociones");
     const sql = db();
     const secundaria = data.descripcion_secundaria || null;
     const sticker = data.sticker || null;
-    const enlace = data.enlace_boton || "#platillos";
+    const enlace = data.enlace_boton || "/menu";
     try {
       if (data.id) {
         const prev = await sql`SELECT imagen_public_id FROM promociones WHERE id = ${data.id}`;
@@ -69,15 +70,18 @@ export const savePromocion = createServerFn({ method: "POST" })
     } catch (error) {
       throw new Error(dbErrorMessage(error));
     }
+    await logActivity(user, data.id ? "editar" : "crear", "Promociones", data.titulo);
     return { ok: true };
   });
 
 export const deletePromocion = createServerFn({ method: "POST" })
   .validator(validate(z.object({ id: z.number().int().positive() })))
   .handler(async ({ data }) => {
-    await requireUser();
+    const user = await requireModule("promociones");
     const rows =
-      await db()`DELETE FROM promociones WHERE id = ${data.id} RETURNING imagen_public_id`;
+      await db()`DELETE FROM promociones WHERE id = ${data.id} RETURNING titulo, imagen_public_id`;
+    const deleted = rows[0];
     await destroyImage(rows[0]?.["imagen_public_id"] as string | null | undefined);
+    await logActivity(user, "eliminar", "Promociones", String(deleted?.["titulo"] ?? ""));
     return { ok: true };
   });

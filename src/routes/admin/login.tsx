@@ -33,7 +33,7 @@ function LoginPage() {
     try {
       await login({ data: { email, password } });
       await router.invalidate();
-      await navigate({ to: "/admin" });
+      await navigate({ to: "/admin/verificacion" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo iniciar sesión.");
       setPending(false);
@@ -48,7 +48,9 @@ function LoginPage() {
             <Leaf className="size-6" strokeWidth={2.5} />
           </span>
           <h1 className="mt-4 text-2xl font-extrabold">Panel de administración</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Ingresa con tu cuenta de Vital Foods</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Paso 1 de 2 · Ingresa con tu cuenta de Vital Foods
+          </p>
         </div>
         <form
           onSubmit={onSubmit}

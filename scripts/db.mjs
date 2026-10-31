@@ -1,4 +1,6 @@
 // Uso: npm run db:migrate | db:seed | db:admin
+// db:admin crea el administrador o recupera su acceso: nueva contraseña, desbloqueo y
+// reinicio de la verificación en dos pasos.
 import { readFile } from "node:fs/promises";
 import { Client, neonConfig } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
@@ -22,18 +24,23 @@ try {
     await client.query(await readFile(file, "utf8"));
     console.log(command === "migrate" ? "Esquema actualizado." : "Datos iniciales cargados.");
   } else if (command === "admin") {
-    if (!ADMIN_EMAIL || !ADMIN_PASSWORD || ADMIN_PASSWORD.length < 8) {
-      throw new Error("Define ADMIN_EMAIL y ADMIN_PASSWORD (mínimo 8 caracteres) en .env");
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD || ADMIN_PASSWORD.length < 10) {
+      throw new Error("Define ADMIN_EMAIL y ADMIN_PASSWORD (mínimo 10 caracteres) en .env");
     }
     const hash = await bcrypt.hash(ADMIN_PASSWORD, 12);
     const { rows } = await client.query(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
        VALUES ($1, $2, $3, 'admin', TRUE)
-       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, activo = TRUE
+       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, activo = TRUE,
+         rol = 'admin', intentos_fallidos = 0, bloqueado_hasta = NULL,
+         totp_activo = FALSE, totp_secreto = NULL, totp_ultimo_paso = NULL
        RETURNING id`,
       [ADMIN_USERNAME || "Administrador", ADMIN_EMAIL.toLowerCase(), hash],
     );
     console.log(`Administrador listo (id ${rows[0].id}, ${ADMIN_EMAIL}).`);
+    console.log(
+      "Al iniciar sesión se pedirá vincular la app de autenticación (verificación en dos pasos).",
+    );
   } else {
     throw new Error("Comando no válido. Usa: migrate, seed o admin");
   }

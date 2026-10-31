@@ -17,7 +17,9 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#6b1f2e" },
+      { name: "format-detection", content: "telephone=no" },
       { title: "Vital Foods" },
       { name: "description", content: "Comida saludable, fresca y deliciosa en Trujillo." },
       { property: "og:title", content: "Vital Foods" },

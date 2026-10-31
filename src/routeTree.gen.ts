@@ -10,11 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MenuRouteImport } from './routes/menu'
 import { Route as AdminPanelRouteImport } from './routes/admin/_panel'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminVerificacionRouteImport } from './routes/admin/verificacion'
 import { Route as AdminPanelIndexRouteImport } from './routes/admin/_panel/index'
 import { Route as AdminPanelCategoriasRouteImport } from './routes/admin/_panel/categorias'
 import { Route as AdminPanelCuentaRouteImport } from './routes/admin/_panel/cuenta'
+import { Route as AdminPanelHistorialRouteImport } from './routes/admin/_panel/historial'
 import { Route as AdminPanelPlatillosRouteImport } from './routes/admin/_panel/platillos'
 import { Route as AdminPanelPromocionesRouteImport } from './routes/admin/_panel/promociones'
 import { Route as AdminPanelSedesRouteImport } from './routes/admin/_panel/sedes'
@@ -25,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MenuRoute = MenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPanelRoute = AdminPanelRouteImport.update({
   id: '/admin/_panel',
   path: '/admin',
@@ -33,6 +41,11 @@ const AdminPanelRoute = AdminPanelRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminVerificacionRoute = AdminVerificacionRouteImport.update({
+  id: '/admin/verificacion',
+  path: '/admin/verificacion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminPanelIndexRoute = AdminPanelIndexRouteImport.update({
@@ -48,6 +61,11 @@ const AdminPanelCategoriasRoute = AdminPanelCategoriasRouteImport.update({
 const AdminPanelCuentaRoute = AdminPanelCuentaRouteImport.update({
   id: '/cuenta',
   path: '/cuenta',
+  getParentRoute: () => AdminPanelRoute,
+} as any)
+const AdminPanelHistorialRoute = AdminPanelHistorialRouteImport.update({
+  id: '/historial',
+  path: '/historial',
   getParentRoute: () => AdminPanelRoute,
 } as any)
 const AdminPanelPlatillosRoute = AdminPanelPlatillosRouteImport.update({
@@ -73,10 +91,13 @@ const AdminPanelUsuariosRoute = AdminPanelUsuariosRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/menu': typeof MenuRoute
   '/admin': typeof AdminPanelRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/verificacion': typeof AdminVerificacionRoute
   '/admin/categorias': typeof AdminPanelCategoriasRoute
   '/admin/cuenta': typeof AdminPanelCuentaRoute
+  '/admin/historial': typeof AdminPanelHistorialRoute
   '/admin/platillos': typeof AdminPanelPlatillosRoute
   '/admin/promociones': typeof AdminPanelPromocionesRoute
   '/admin/sedes': typeof AdminPanelSedesRoute
@@ -85,9 +106,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/menu': typeof MenuRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/verificacion': typeof AdminVerificacionRoute
   '/admin/categorias': typeof AdminPanelCategoriasRoute
   '/admin/cuenta': typeof AdminPanelCuentaRoute
+  '/admin/historial': typeof AdminPanelHistorialRoute
   '/admin/platillos': typeof AdminPanelPlatillosRoute
   '/admin/promociones': typeof AdminPanelPromocionesRoute
   '/admin/sedes': typeof AdminPanelSedesRoute
@@ -97,10 +121,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/menu': typeof MenuRoute
   '/admin/_panel': typeof AdminPanelRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/verificacion': typeof AdminVerificacionRoute
   '/admin/_panel/categorias': typeof AdminPanelCategoriasRoute
   '/admin/_panel/cuenta': typeof AdminPanelCuentaRoute
+  '/admin/_panel/historial': typeof AdminPanelHistorialRoute
   '/admin/_panel/platillos': typeof AdminPanelPlatillosRoute
   '/admin/_panel/promociones': typeof AdminPanelPromocionesRoute
   '/admin/_panel/sedes': typeof AdminPanelSedesRoute
@@ -111,10 +138,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/menu'
     | '/admin'
     | '/admin/login'
+    | '/admin/verificacion'
     | '/admin/categorias'
     | '/admin/cuenta'
+    | '/admin/historial'
     | '/admin/platillos'
     | '/admin/promociones'
     | '/admin/sedes'
@@ -123,9 +153,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/menu'
     | '/admin/login'
+    | '/admin/verificacion'
     | '/admin/categorias'
     | '/admin/cuenta'
+    | '/admin/historial'
     | '/admin/platillos'
     | '/admin/promociones'
     | '/admin/sedes'
@@ -134,10 +167,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/menu'
     | '/admin/_panel'
     | '/admin/login'
+    | '/admin/verificacion'
     | '/admin/_panel/categorias'
     | '/admin/_panel/cuenta'
+    | '/admin/_panel/historial'
     | '/admin/_panel/platillos'
     | '/admin/_panel/promociones'
     | '/admin/_panel/sedes'
@@ -147,8 +183,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MenuRoute: typeof MenuRoute
   AdminPanelRoute: typeof AdminPanelRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminVerificacionRoute: typeof AdminVerificacionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -158,6 +196,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/menu': {
+      id: '/menu'
+      path: '/menu'
+      fullPath: '/menu'
+      preLoaderRoute: typeof MenuRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/_panel': {
@@ -172,6 +217,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/verificacion': {
+      id: '/admin/verificacion'
+      path: '/admin/verificacion'
+      fullPath: '/admin/verificacion'
+      preLoaderRoute: typeof AdminVerificacionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/_panel/': {
@@ -193,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/cuenta'
       fullPath: '/admin/cuenta'
       preLoaderRoute: typeof AdminPanelCuentaRouteImport
+      parentRoute: typeof AdminPanelRoute
+    }
+    '/admin/_panel/historial': {
+      id: '/admin/_panel/historial'
+      path: '/historial'
+      fullPath: '/admin/historial'
+      preLoaderRoute: typeof AdminPanelHistorialRouteImport
       parentRoute: typeof AdminPanelRoute
     }
     '/admin/_panel/platillos': {
@@ -229,6 +288,7 @@ declare module '@tanstack/react-router' {
 interface AdminPanelRouteChildren {
   AdminPanelCategoriasRoute: typeof AdminPanelCategoriasRoute
   AdminPanelCuentaRoute: typeof AdminPanelCuentaRoute
+  AdminPanelHistorialRoute: typeof AdminPanelHistorialRoute
   AdminPanelPlatillosRoute: typeof AdminPanelPlatillosRoute
   AdminPanelPromocionesRoute: typeof AdminPanelPromocionesRoute
   AdminPanelSedesRoute: typeof AdminPanelSedesRoute
@@ -239,6 +299,7 @@ interface AdminPanelRouteChildren {
 const AdminPanelRouteChildren: AdminPanelRouteChildren = {
   AdminPanelCategoriasRoute: AdminPanelCategoriasRoute,
   AdminPanelCuentaRoute: AdminPanelCuentaRoute,
+  AdminPanelHistorialRoute: AdminPanelHistorialRoute,
   AdminPanelPlatillosRoute: AdminPanelPlatillosRoute,
   AdminPanelPromocionesRoute: AdminPanelPromocionesRoute,
   AdminPanelSedesRoute: AdminPanelSedesRoute,
@@ -252,8 +313,10 @@ const AdminPanelRouteWithChildren = AdminPanelRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MenuRoute: MenuRoute,
   AdminPanelRoute: AdminPanelRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
+  AdminVerificacionRoute: AdminVerificacionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

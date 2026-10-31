@@ -1,6 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ChevronLeft,
+  ExternalLink,
+  History,
   LayoutGrid,
   Leaf,
   LogOut,
@@ -27,7 +29,8 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { SessionUser } from "@/lib/types";
+import type { Modulo, SessionUser } from "@/lib/types";
+import { canAccess } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 type Item = { label: string; to: string; icon: LucideIcon; badge?: number };
@@ -69,12 +72,13 @@ export function AdminSidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { toggleSidebar, state } = useSidebar();
 
+  const mod = (modulo: Modulo, item: Item) => (canAccess(user, modulo) ? [item] : []);
   const groups: Group[] = [
     {
       label: "General",
       items: [
         {
-          label: "Panel de administración",
+          label: "Inicio del panel",
           to: "/admin",
           icon: LayoutGrid,
           ...(alertCount > 0 && { badge: alertCount }),
@@ -84,24 +88,36 @@ export function AdminSidebar({
     {
       label: "Menú",
       items: [
-        { label: "Platillos", to: "/admin/platillos", icon: UtensilsCrossed },
-        { label: "Categorías", to: "/admin/categorias", icon: Tags },
+        ...mod("platillos", {
+          label: "Platillos y precios",
+          to: "/admin/platillos",
+          icon: UtensilsCrossed,
+        }),
+        ...mod("categorias", { label: "Categorías", to: "/admin/categorias", icon: Tags }),
       ],
     },
     {
       label: "Negocio",
       items: [
-        { label: "Sedes", to: "/admin/sedes", icon: MapPin },
-        { label: "Promociones", to: "/admin/promociones", icon: Megaphone },
+        ...mod("sedes", { label: "Sedes", to: "/admin/sedes", icon: MapPin }),
+        ...mod("promociones", {
+          label: "Banners de portada",
+          to: "/admin/promociones",
+          icon: Megaphone,
+        }),
       ],
     },
   ];
   if (user.rol === "admin") {
     groups.push({
       label: "Accesos",
-      items: [{ label: "Usuarios", to: "/admin/usuarios", icon: UsersRound }],
+      items: [
+        { label: "Usuarios y permisos", to: "/admin/usuarios", icon: UsersRound },
+        { label: "Historial de cambios", to: "/admin/historial", icon: History },
+      ],
     });
   }
+  const visibleGroups = groups.filter((g) => g.items.length > 0);
 
   const isActive = (to: string) =>
     to === "/admin" ? pathname === "/admin" || pathname === "/admin/" : pathname.startsWith(to);
@@ -120,7 +136,7 @@ export function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent className="pt-2">
-        {groups.map((group) => (
+        {visibleGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.14em]">
               {group.label}
@@ -162,6 +178,14 @@ export function AdminSidebar({
           </div>
         </div>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Ver la web pública">
+              <a href="/" target="_blank" rel="noopener">
+                <ExternalLink />
+                <span>Ver la web pública</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild

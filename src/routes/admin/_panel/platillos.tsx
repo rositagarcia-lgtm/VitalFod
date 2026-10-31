@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { ImageOff, Pencil, Plus, Search } from "lucide-react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { ImageOff, Pencil, Plus, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +32,7 @@ import { ConfirmDelete, EmptyState, Field, PageHeader, SubmitButton } from "@/co
 import { ImageField } from "@/components/admin/ImageField";
 import { useAction } from "@/components/admin/hooks";
 import { toInt } from "@/lib/utils";
+import { canAccess } from "@/lib/permissions";
 import {
   deletePlatillo,
   listPlatillos,
@@ -44,7 +45,10 @@ import { formatPrice, optimizedImage } from "@/lib/images";
 import type { Platillo } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/_panel/platillos")({
-  staticData: { title: "Platillos" },
+  staticData: { title: "Platillos y precios", section: "Menú" },
+  beforeLoad: ({ context }) => {
+    if (!canAccess(context.user, "platillos")) throw redirect({ to: "/admin" });
+  },
   loader: async () => {
     const [platillos, categorias] = await Promise.all([listPlatillos(), listCategorias()]);
     return { platillos, categorias };
@@ -52,7 +56,12 @@ export const Route = createFileRoute("/admin/_panel/platillos")({
   component: PlatillosPage,
 });
 
-type FormState = Omit<PlatilloInput, "precio"> & { precio: string };
+type FormState = Omit<PlatilloInput, "precio" | "precio_oferta"> & {
+  precio: string;
+  precio_oferta: string;
+};
+
+const parseMoney = (v: string) => Number.parseFloat(v.replace(",", "."));
 
 const ALL = "todas";
 
@@ -84,7 +93,9 @@ function PlatillosPage() {
             nombre: p.nombre,
             descripcion: p.descripcion ?? "",
             precio: p.precio.toFixed(2),
+            precio_oferta: p.precio_oferta === null ? "" : p.precio_oferta.toFixed(2),
             disponible: p.disponible,
+            destacado: p.destacado,
             orden: p.orden,
             imagen_url: p.imagen_url,
             imagen_public_id: p.imagen_public_id,
@@ -94,7 +105,9 @@ function PlatillosPage() {
             nombre: "",
             descripcion: "",
             precio: "",
+            precio_oferta: "",
             disponible: true,
+            destacado: false,
             orden: platillos.length + 1,
             imagen_url: null,
             imagen_public_id: null,
@@ -104,9 +117,10 @@ function PlatillosPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editing) return;
-    const precio = Number.parseFloat(editing.precio.replace(",", "."));
+    const precio = parseMoney(editing.precio);
+    const precio_oferta = editing.precio_oferta.trim() ? parseMoney(editing.precio_oferta) : null;
     const ok = await run(
-      () => savePlatillo({ data: { ...editing, precio } }),
+      () => savePlatillo({ data: { ...editing, precio, precio_oferta } }),
       editing.id ? "Platillo actualizado." : "Platillo creado.",
     );
     if (ok) setEditing(null);
@@ -116,8 +130,8 @@ function PlatillosPage() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Menú"
-        title="Platillos"
-        description="Lo que tus clientes ven en la sección “Nuestros platillos”."
+        title="Platillos y precios"
+        description="Lo que tus clientes ven en la página Menú. Los cambios se publican al guardar."
         action={
           <Button variant="burgundy" onClick={() => open()} disabled={categorias.length === 0}>
             <Plus /> Nuevo platillo
@@ -165,7 +179,7 @@ function PlatillosPage() {
                 <TableHead>Platillo</TableHead>
                 <TableHead className="hidden md:table-cell">Categoría</TableHead>
                 <TableHead className="text-right">Precio</TableHead>
-                <TableHead className="text-center">Disponible</TableHead>
+                <TableHead className="text-center">Visible</TableHead>
                 <TableHead className="w-24 text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -189,7 +203,15 @@ function PlatillosPage() {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold">{p.nombre}</p>
+                          <p className="flex items-center gap-1.5 font-semibold">
+                            {p.nombre}
+                            {p.destacado && (
+                              <Star
+                                className="size-3.5 fill-warning text-warning"
+                                aria-label="Se muestra en la portada"
+                              />
+                            )}
+                          </p>
                           <p className="max-w-xs truncate text-xs text-muted-foreground">
                             {p.descripcion}
                           </p>
@@ -198,7 +220,16 @@ function PlatillosPage() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{p.categoria}</TableCell>
                     <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">
-                      {formatPrice(p.precio)}
+                      {p.precio_oferta === null ? (
+                        formatPrice(p.precio)
+                      ) : (
+                        <span className="grid justify-items-end">
+                          <span className="text-brand-wine">{formatPrice(p.precio_oferta)}</span>
+                          <s className="text-xs font-normal text-muted-foreground">
+                            {formatPrice(p.precio)}
+                          </s>
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       <Switch
@@ -295,7 +326,7 @@ function PlatillosPage() {
                     </SelectContent>
                   </Select>
                 </Field>
-                <Field label="Precio (S/)" htmlFor="precio">
+                <Field label="Precio normal (S/)" htmlFor="precio">
                   <Input
                     id="precio"
                     inputMode="decimal"
@@ -305,7 +336,7 @@ function PlatillosPage() {
                     required
                   />
                 </Field>
-                <Field label="Orden" htmlFor="orden">
+                <Field label="Posición en la lista" htmlFor="orden" hint="1 aparece primero.">
                   <Input
                     id="orden"
                     type="number"
@@ -315,13 +346,35 @@ function PlatillosPage() {
                   />
                 </Field>
               </div>
-              <label className="flex items-center gap-3 text-sm font-medium">
-                <Switch
-                  checked={editing.disponible}
-                  onCheckedChange={(disponible) => setEditing({ ...editing, disponible })}
+              <Field
+                label="Precio de oferta (S/) — opcional"
+                htmlFor="oferta"
+                hint="Si lo llenas, la web muestra el precio normal tachado y este como precio real. Déjalo vacío para quitar la oferta."
+              >
+                <Input
+                  id="oferta"
+                  inputMode="decimal"
+                  placeholder="Sin oferta"
+                  value={editing.precio_oferta}
+                  onChange={(e) => setEditing({ ...editing, precio_oferta: e.target.value })}
                 />
-                Disponible para la venta
-              </label>
+              </Field>
+              <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
+                <label className="flex items-center gap-3 text-sm font-medium">
+                  <Switch
+                    checked={editing.disponible}
+                    onCheckedChange={(disponible) => setEditing({ ...editing, disponible })}
+                  />
+                  Visible en la web (disponible)
+                </label>
+                <label className="flex items-center gap-3 text-sm font-medium">
+                  <Switch
+                    checked={editing.destacado}
+                    onCheckedChange={(destacado) => setEditing({ ...editing, destacado })}
+                  />
+                  Mostrar en la portada
+                </label>
+              </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>
                   Cancelar

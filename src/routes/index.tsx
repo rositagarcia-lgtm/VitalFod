@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Header } from "@/components/Header";
+import { SiteLayout } from "@/components/SiteLayout";
 import { PromoBanner } from "@/components/PromoBanner";
-import { DishesSection } from "@/components/DishesSection";
+import { FeaturedSection } from "@/components/FeaturedSection";
 import { AboutSection } from "@/components/AboutSection";
 import { LocationsSection } from "@/components/LocationsSection";
-import { Footer } from "@/components/Footer";
 import { getHomeData } from "@/functions/public";
 
 export const Route = createFileRoute("/")({
@@ -28,18 +27,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { platillos, categorias, sedes, promociones } = Route.useLoaderData();
+  const { destacados, totalPlatillos, sedes, promociones } = Route.useLoaderData();
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background">
-      <Header />
-      <main>
-        <PromoBanner promotions={promociones} />
-        <DishesSection dishes={platillos} categories={categorias} />
-        <AboutSection />
-        <LocationsSection locations={sedes} />
-      </main>
-      <Footer />
-    </div>
+    <SiteLayout>
+      <PromoBanner promotions={promociones} />
+      <FeaturedSection dishes={destacados} total={totalPlatillos} />
+      <AboutSection />
+      <LocationsSection locations={sedes} />
+    </SiteLayout>
   );
 }

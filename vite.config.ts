@@ -5,6 +5,33 @@ import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import { nitro } from "nitro/vite";
 
+const securityHeaders = {
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+};
+
+// Caché del servidor de producción:
+// - páginas y datos: siempre se revalidan, así nadie ve precios desactualizados;
+// - imágenes locales: 7 días (las de Cloudinary ya llegan desde su CDN con caché propia);
+// - archivos con hash en el nombre: un año, porque cambian de nombre en cada versión.
+const routeRules = {
+  "/**": { headers: { ...securityHeaders, "cache-control": "no-cache" } },
+  "/_serverFn/**": { headers: { ...securityHeaders, "cache-control": "private, no-store" } },
+  "/admin/**": { headers: { ...securityHeaders, "cache-control": "private, no-store" } },
+  "/images/**": {
+    headers: {
+      ...securityHeaders,
+      "cache-control": "public, max-age=604800, stale-while-revalidate=86400",
+    },
+  },
+  "/assets/**": {
+    headers: { ...securityHeaders, "cache-control": "public, max-age=31536000, immutable" },
+  },
+};
+
 export default defineConfig(({ command, mode }) => {
   // Las server functions leen process.env; en desarrollo se cargan desde .env
   Object.assign(process.env, { ...loadEnv(mode, process.cwd(), ""), ...process.env });
@@ -46,7 +73,7 @@ export default defineConfig(({ command, mode }) => {
           client: { files: ["**/server/**"], specifiers: ["server-only"] },
         },
       }),
-      ...(command === "build" ? [nitro()] : []),
+      ...(command === "build" ? [nitro({ routeRules })] : []),
       viteReact(),
     ],
   };

@@ -1,6 +1,14 @@
 export type Rol = "admin" | "editor";
 
-export type SessionUser = { id: number; nombre: string; email: string; rol: Rol };
+export type Modulo = "platillos" | "categorias" | "sedes" | "promociones";
+
+export type SessionUser = {
+  id: number;
+  nombre: string;
+  email: string;
+  rol: Rol;
+  permisos: Modulo[];
+};
 
 export type Categoria = {
   id: number;
@@ -22,6 +30,11 @@ export type Platillo = {
   imagen_public_id: string | null;
   disponible: boolean;
   orden: number;
+  precio_oferta: number | null;
+  destacado: boolean;
+  precio_actualizado_at: string;
+  /** El precio cambió en los últimos 7 días (calculado en la base de datos). */
+  precio_reciente: boolean;
 };
 
 export type Sede = {
@@ -60,6 +73,18 @@ export type Usuario = {
   email: string;
   rol: Rol;
   activo: boolean;
+  permisos: Modulo[];
+  totp_activo: boolean;
+  bloqueado: boolean;
   ultimo_acceso: string | null;
+  created_at: string;
+};
+
+export type Actividad = {
+  id: number;
+  usuario: string;
+  accion: "crear" | "editar" | "eliminar" | "seguridad";
+  modulo: string;
+  detalle: string;
   created_at: string;
 };

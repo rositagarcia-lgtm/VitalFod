@@ -22,7 +22,7 @@ export function PromoBanner({ promotions }: { promotions: Promocion[] }) {
 
   if (!promo) {
     return (
-      <section id="inicio" className="mt-20 bg-cream px-6 py-28 text-center">
+      <section id="inicio" className="mt-16 bg-cream px-6 py-28 text-center md:mt-20">
         <h1 className="text-5xl font-extrabold text-brand-wine sm:text-7xl">Vital Foods</h1>
         <p className="mt-4 text-lg text-muted-foreground">Comida saludable, fresca y deliciosa.</p>
       </section>
@@ -41,7 +41,7 @@ export function PromoBanner({ promotions }: { promotions: Promocion[] }) {
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className={`campaign-banner campaign-${promo.variante} relative mt-20 overflow-hidden`}
+      className={`campaign-banner campaign-${promo.variante} relative mt-16 overflow-hidden md:mt-20`}
     >
       <div className="campaign-shade absolute inset-0" />
       <div className="pointer-events-none absolute -left-20 top-16 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />

@@ -59,7 +59,7 @@ Sitio web de Vital Foods (Trujillo) con panel de administración para gestionar 
 | `npm run format`     | Formatea el código con Prettier                        |
 | `npm run db:migrate` | Aplica `db/schema.sql` (idempotente, no borra datos)   |
 | `npm run db:seed`    | Inserta los datos iniciales que falten (`db/seed.sql`) |
-| `npm run db:admin`   | Crea el administrador o le restablece la contraseña    |
+| `npm run db:admin`   | Crea el administrador o recupera su acceso             |
 
 ## Estructura
 
@@ -73,10 +73,29 @@ src/server/         Código que solo corre en el servidor: BD, sesión, Cloudina
 src/components/     Componentes del sitio, del panel (admin/) y base (ui/)
 ```
 
-## Roles del panel
+## Sitio público
 
-- **Administrador**: acceso completo, incluida la gestión de usuarios.
-- **Editor**: gestiona platillos, categorías, sedes y promociones.
+- `/`: portada con banners, platillos destacados, nosotros y sedes.
+- `/menu`: menú completo en su propia página, con ruta de navegación, categorías en un menú lateral que se contrae (desplegable en celulares), buscador y precios en soles. Cada categoría tiene su propia dirección, por ejemplo `/menu?categoria=Bowls`.
+- En celulares hay una barra de navegación inferior, como en una app.
+- Las ofertas muestran el precio normal tachado y el precio real; los precios cambiados en los últimos 7 días llevan la etiqueta "Precio actualizado".
+
+## Panel y seguridad
+
+- **Verificación en dos pasos obligatoria**: después de la contraseña se pide un código de 6 dígitos de Google Authenticator, Microsoft Authenticator u otra app compatible. La primera vez se vincula escaneando un código QR.
+- **Bloqueo temporal**: 5 intentos fallidos bloquean la cuenta 15 minutos. Un administrador puede desbloquearla desde _Usuarios y permisos_.
+- **Correos autorizados**: solo se pueden crear cuentas con los dominios de `ADMIN_EMAIL_DOMAINS` (por defecto gmail.com y vitalfoods.pe).
+- **Contraseñas** de mínimo 10 caracteres, guardadas con bcrypt. El secreto de la verificación en dos pasos se guarda cifrado con una clave derivada de `SESSION_SECRET`; si se cambia esa variable, hay que restablecer la verificación de cada usuario.
+- **Permisos por sección**: los administradores acceden a todo; a cada editor se le eligen las secciones que puede modificar (platillos, categorías, sedes, banners).
+- **Historial de cambios**: registra quién creó, modificó o eliminó algo y cuándo. La campana del panel muestra pendientes y cambios recientes.
+
+### Recuperar el acceso de administrador
+
+Si se pierde el celular o la cuenta queda bloqueada, define `ADMIN_EMAIL` y una nueva `ADMIN_PASSWORD` en `.env` y ejecuta `npm run db:admin`. Esto cambia la contraseña, desbloquea la cuenta y pide vincular de nuevo la app de autenticación en el siguiente ingreso.
+
+## Caché
+
+En producción, las páginas y los datos siempre se revalidan, para que nadie vea precios desactualizados. Las imágenes locales se guardan 7 días en el navegador y los archivos con hash, un año. Las imágenes de Cloudinary se sirven desde su CDN en formato y tamaño automáticos (`f_auto`, `q_auto`, `srcset`). Las reglas están en `vite.config.ts` (`routeRules`).
 
 ## Imágenes
 

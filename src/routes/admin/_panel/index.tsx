@@ -13,6 +13,9 @@ import {
 import { getDashboard } from "@/functions/admin/dashboard";
 import { ROLE_LABEL } from "@/components/admin/AdminSidebar";
 import { cn } from "@/lib/utils";
+import { canAccess } from "@/lib/permissions";
+import { ACCION, timeAgo } from "@/components/admin/NotificationsBell";
+import type { Modulo } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/_panel/")({
   staticData: { title: "Panel de administración" },
@@ -20,28 +23,38 @@ export const Route = createFileRoute("/admin/_panel/")({
   component: Dashboard,
 });
 
-const quickActions: { title: string; description: string; to: string; icon: LucideIcon }[] = [
+const quickActions: {
+  title: string;
+  description: string;
+  to: string;
+  icon: LucideIcon;
+  modulo: Modulo;
+}[] = [
   {
-    title: "Platillos",
-    description: "Precios, fotos y disponibilidad",
+    modulo: "platillos",
+    title: "Platillos y precios",
+    description: "Precios, ofertas, fotos y disponibilidad",
     to: "/admin/platillos",
     icon: UtensilsCrossed,
   },
   {
+    modulo: "categorias",
     title: "Categorías",
     description: "Organiza las secciones del menú",
     to: "/admin/categorias",
     icon: Tags,
   },
   {
+    modulo: "sedes",
     title: "Sedes",
     description: "Direcciones y horarios de atención",
     to: "/admin/sedes",
     icon: MapPin,
   },
   {
-    title: "Promociones",
-    description: "Campañas del carrusel principal",
+    modulo: "promociones",
+    title: "Banners de portada",
+    description: "Imágenes y mensajes del inicio de la web",
     to: "/admin/promociones",
     icon: Megaphone,
   },
@@ -49,7 +62,8 @@ const quickActions: { title: string; description: string; to: string; icon: Luci
 
 function Dashboard() {
   const { user } = Route.useRouteContext();
-  const { totales, alertas } = Route.useLoaderData();
+  const { totales, alertas, recientes } = Route.useLoaderData();
+  const acciones = quickActions.filter((a) => canAccess(user, a.modulo));
   const medias = alertas.filter((a) => a.nivel === "media").length;
   const bajas = alertas.length - medias;
 
@@ -57,12 +71,12 @@ function Dashboard() {
     {
       label: "Platillos",
       value: totales.platillos,
-      hint: `${totales.disponibles} disponibles`,
+      hint: `${totales.disponibles} visibles · ${totales.ofertas} en oferta`,
       icon: UtensilsCrossed,
     },
     { label: "Categorías", value: totales.categorias, hint: "activas en el menú", icon: Tags },
     { label: "Sedes", value: totales.sedes, hint: "abiertas al público", icon: MapPin },
-    { label: "Promociones", value: totales.promociones, hint: "en el carrusel", icon: Megaphone },
+    { label: "Banners", value: totales.promociones, hint: "en la portada", icon: Megaphone },
   ];
 
   return (
@@ -73,7 +87,7 @@ function Dashboard() {
         </p>
         <h1 className="mt-1 text-4xl font-extrabold tracking-tight">Vital Foods</h1>
         <p className="mt-2 text-muted-foreground">
-          Administra el menú, las sedes y las campañas que se muestran en la web.
+          Elige una sección para actualizar lo que ven tus clientes en la web.
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
           <span className="rounded-md border bg-background px-2 py-1">{ROLE_LABEL[user.rol]}</span>
@@ -88,7 +102,7 @@ function Dashboard() {
       <section>
         <h2 className="mb-4 text-lg font-bold">Acciones rápidas</h2>
         <div className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2">
-          {quickActions.map((action) => (
+          {acciones.map((action) => (
             <Link
               key={action.to}
               to={action.to}
@@ -177,6 +191,30 @@ function Dashboard() {
             </>
           )}
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-bold">Cambios recientes</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Lo último que se modificó desde el panel.
+        </p>
+        {recientes.length === 0 ? (
+          <div className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">
+            Todavía no hay cambios registrados.
+          </div>
+        ) : (
+          <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+            {recientes.map((r) => (
+              <li key={r.id} className="px-5 py-3 text-sm">
+                <span className="font-semibold">{r.usuario}</span>{" "}
+                <span className="text-muted-foreground">{ACCION[r.accion]}</span> {r.detalle}
+                <span className="block text-xs text-muted-foreground">
+                  {r.modulo} · {timeAgo(r.created_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

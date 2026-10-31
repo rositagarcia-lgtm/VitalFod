@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ImageOff, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ import {
 import { ImageField } from "@/components/admin/ImageField";
 import { useAction } from "@/components/admin/hooks";
 import { toInt } from "@/lib/utils";
+import { canAccess } from "@/lib/permissions";
 import {
   deletePromocion,
   listPromociones,
@@ -41,7 +42,10 @@ import { optimizedImage } from "@/lib/images";
 import type { Promocion, Variante } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/_panel/promociones")({
-  staticData: { title: "Promociones" },
+  staticData: { title: "Banners de portada", section: "Negocio" },
+  beforeLoad: ({ context }) => {
+    if (!canAccess(context.user, "promociones")) throw redirect({ to: "/admin" });
+  },
   loader: () => listPromociones(),
   component: PromocionesPage,
 });
@@ -86,7 +90,7 @@ function PromocionesPage() {
             descripcion_secundaria: "",
             sticker: "",
             texto_boton: "Ver más",
-            enlace_boton: "#platillos",
+            enlace_boton: "/menu",
             variante: "launch",
             caracteristicas: "",
             orden: promociones.length + 1,
@@ -117,11 +121,11 @@ function PromocionesPage() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Negocio"
-        title="Promociones"
-        description="Campañas que rotan en el carrusel de la portada."
+        title="Banners de portada"
+        description="Imágenes y mensajes que rotan al inicio de la web. Se muestran en el orden indicado."
         action={
           <Button variant="burgundy" onClick={() => open()}>
-            <Plus /> Nueva promoción
+            <Plus /> Nuevo banner
           </Button>
         }
       />
@@ -184,7 +188,7 @@ function PromocionesPage() {
           {editing && (
             <form onSubmit={submit} className="grid gap-4">
               <DialogHeader>
-                <DialogTitle>{editing.id ? "Editar promoción" : "Nueva promoción"}</DialogTitle>
+                <DialogTitle>{editing.id ? "Editar banner" : "Nuevo banner"}</DialogTitle>
                 <DialogDescription>
                   Imagen recomendada: horizontal, 1400 × 780 px.
                 </DialogDescription>
@@ -264,7 +268,7 @@ function PromocionesPage() {
                 <Field
                   label="Enlace del botón"
                   htmlFor="enlace"
-                  hint="#platillos, #sedes o una URL"
+                  hint="/menu, /#sedes o una dirección web"
                 >
                   <Input
                     id="enlace"
@@ -291,7 +295,7 @@ function PromocionesPage() {
                     </SelectContent>
                   </Select>
                 </Field>
-                <Field label="Orden" htmlFor="orden">
+                <Field label="Posición en la lista" htmlFor="orden" hint="1 aparece primero.">
                   <Input
                     id="orden"
                     type="number"

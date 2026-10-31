@@ -1,9 +1,10 @@
+import { Link } from "@tanstack/react-router";
 import { Instagram, Mail, Phone } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 
 export function Footer() {
   return (
-    <footer className="bg-brand-wine text-brand-wine-foreground">
+    <footer className="bg-brand-wine pb-[calc(3.5rem+env(safe-area-inset-bottom))] text-brand-wine-foreground md:pb-0">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr] lg:px-8">
         <div>
           <BrandLogo inverse />
@@ -16,10 +17,18 @@ export function Footer() {
             Explora
           </p>
           <nav className="grid gap-3 text-sm">
-            <a href="#inicio">Inicio</a>
-            <a href="#platillos">Platillos</a>
-            <a href="#nosotros">Nosotros</a>
-            <a href="#sedes">Sedes</a>
+            <Link to="/" className="hover:underline">
+              Inicio
+            </Link>
+            <Link to="/menu" className="hover:underline">
+              Menú
+            </Link>
+            <Link to="/" hash="nosotros" className="hover:underline">
+              Nosotros
+            </Link>
+            <Link to="/" hash="sedes" className="hover:underline">
+              Sedes
+            </Link>
           </nav>
         </div>
         <div>
